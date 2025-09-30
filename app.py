@@ -100,13 +100,13 @@ def main():
         fps = cvFpsCalc.get()
 
         # Process Key (ESC: end)
-        key = cv.waitKey(10)
+        key = cv.waitKey(10) #adds delay between frames for the program to capture the keyboard events and maintain smooth frame display
         if key == 27:  # ESC
             break
         number, mode = select_mode(key, mode)
 
         # Camera capture
-        ret, image = cap.read()
+        ret, image = cap.read() #captures frames
         if not ret:
             break
         image = cv.flip(image, 1)  # Mirror display
@@ -116,23 +116,28 @@ def main():
         image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
 
         image.flags.writeable = False
-        results = hands.process(image)
+        results = hands.process(image) #tracking hands from the image
         image.flags.writeable = True
 
   
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks,
                                                   results.multi_handedness):
+                # print(hand_landmarks)
+
                 # Bounding box calculation
                 brect = calc_bounding_rect(debug_image, hand_landmarks)
+
                 # Landmark calculation
-                landmark_list = calc_landmark_list(debug_image, hand_landmarks)
+                landmark_list = calc_landmark_list(debug_image, hand_landmarks) #processes X,Y pixel coordinates into a list and Y coordinate is not used
+                print(landmark_list)
 
                 # Conversion to relative coordinates / normalized coordinates
                 pre_processed_landmark_list = pre_process_landmark(
                     landmark_list)
                 pre_processed_point_history_list = pre_process_point_history(
                     debug_image, point_history)
+                
                 # Write to the dataset file
                 logging_csv(number, mode, pre_processed_landmark_list,
                             pre_processed_point_history_list)
@@ -145,7 +150,7 @@ def main():
                     point_history.append([0, 0])
 
                 # Finger gesture classification
-                finger_gesture_id = 0
+                finger_gesture_id = 0 
                 point_history_len = len(pre_processed_point_history_list)
                 if point_history_len == (history_length * 2):
                     finger_gesture_id = point_history_classifier(
@@ -235,7 +240,7 @@ def pre_process_landmark(landmark_list):
         if index == 0:
             base_x, base_y = landmark_point[0], landmark_point[1]
 
-        temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x
+        temp_landmark_list[index][0] = temp_landmark_list[index][0] - base_x #calculates the distance between the wrist point pixel coordinate to all the other point coordinated
         temp_landmark_list[index][1] = temp_landmark_list[index][1] - base_y
 
     # Convert to a one-dimensional list
@@ -246,7 +251,7 @@ def pre_process_landmark(landmark_list):
     max_value = max(list(map(abs, temp_landmark_list)))
 
     def normalize_(n):
-        return n / max_value
+        return n / max_value #all the coordinates get divided by the maximum value
 
     temp_landmark_list = list(map(normalize_, temp_landmark_list))
 
@@ -499,7 +504,13 @@ def draw_info_text(image, brect, handedness, hand_sign_text,
         info_text = info_text + ':' + hand_sign_text
     cv.putText(image, info_text, (brect[0] + 5, brect[1] - 4),
                cv.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv.LINE_AA)
-
+    
+    # if finger_gesture_text != "":
+    #         cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+    #                 cv.FONT_HERSHEY_SIMPLEX, 1.0, (0, 0, 0), 4, cv.LINE_AA)
+    #         cv.putText(image, "Finger Gesture:" + finger_gesture_text, (10, 60),
+    #                 cv.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2,
+    #                 cv.LINE_AA)
 
     return image
 
